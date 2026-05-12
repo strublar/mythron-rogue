@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { UNIT_DEFS, UnitAnimKey, createUnitSprite, playUnitAnim } from '../UnitAnimator';
+import { UnitAnimKey, createUnitSprite, playUnitAnim } from '../UnitAnimator';
 
 const ANIMS: UnitAnimKey[] = ['idle', 'breathing', 'run', 'attack', 'cast', 'caststart', 'castloop', 'castend', 'hit', 'death'];
 

@@ -3,7 +3,7 @@
 // - applyAction: pure reducer — returns new GameState given current state + action
 // GameState is the single source of truth; CombatScene reads it to render.
 
-import { GameState, Unit, Faction, BOARD_COLS, BOARD_ROWS } from '../types';
+import { GameState, Unit, BOARD_COLS, BOARD_ROWS } from '../types';
 
 export function createInitialGameState(): GameState {
   // TODO: accept an EncounterDefinition param so each floor has different enemy loadout

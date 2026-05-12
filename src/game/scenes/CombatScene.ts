@@ -8,28 +8,14 @@
 // - Spawn Phaser particle VFX on attacks/spells
 
 import Phaser from 'phaser';
-import { GameState } from '../../types';
-import { createInitialGameState } from '../../engine/GameState';
-import { ActionSystem } from '../../engine/ActionSystem';
-import { AIController } from '../../ai/AIController';
 
 export class CombatScene extends Phaser.Scene {
-  private gameState!: GameState;
-  private actionSystem!: ActionSystem;
-  private aiController!: AIController;
-
-  // TODO: selectedUnitId tracks which unit the player has tapped
-  private selectedUnitId: string | null = null;
-
   constructor() {
     super({ key: 'CombatScene' });
   }
 
   create(): void {
-    this.gameState = createInitialGameState();
-    this.actionSystem = new ActionSystem(this.gameState);
-    this.aiController = new AIController(this.actionSystem);
-
+    // TODO: createInitialGameState, wire ActionSystem + AIController
     // TODO: render grid tiles
     // TODO: render unit sprites from gameState.units
     // TODO: register pointer input handlers
