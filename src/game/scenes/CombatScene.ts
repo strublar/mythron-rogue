@@ -35,6 +35,7 @@ export class CombatScene extends Phaser.Scene {
   private turnIndicator!: Phaser.GameObjects.Text;
   private endTurnBtn!: Phaser.GameObjects.Rectangle;
   private endTurnBtnText!: Phaser.GameObjects.Text;
+  private gameOver = false;
 
   constructor() {
     super({ key: 'CombatScene' });
@@ -133,6 +134,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   private handlePointerDown(x: number, y: number): void {
+    if (this.gameOver) return;
     if (this.currentPhase !== 'PLAYER_TURN') return;
     const pos = this.pixelToCell(x, y);
     if (!pos) return;
@@ -257,7 +259,24 @@ export class CombatScene extends Phaser.Scene {
     this.unitSprites.delete(unit.id);
     this.hpLabels.get(unit.id)?.destroy();
     this.hpLabels.delete(unit.id);
-    // TASK-09: check isGeneral and show game-over screen
+    if (unit.isGeneral) {
+      this.showGameOver(unit.faction === 'player' ? 'DEFEAT' : 'VICTORY');
+    }
+  }
+
+  private showGameOver(result: 'VICTORY' | 'DEFEAT'): void {
+    this.gameOver = true;
+    const { width, height } = this.scale;
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75)
+      .setDepth(20).setInteractive();
+    const color = result === 'VICTORY' ? '#ffd700' : '#ff2222';
+    this.add.text(width / 2, height / 2 - 40, result, {
+      fontSize: '56px', color, fontFamily: 'monospace',
+    }).setOrigin(0.5, 0.5).setDepth(21);
+    this.add.text(width / 2, height / 2 + 30, 'Click to restart', {
+      fontSize: '18px', color: '#ffffff', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0.5).setDepth(21);
+    overlay.on('pointerdown', () => this.scene.restart());
   }
 
   protected cellToPixel(col: number, row: number): { x: number; y: number } {
