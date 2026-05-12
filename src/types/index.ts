@@ -171,3 +171,5 @@ export type GameEventType =
   | 'run:draftReady'
   | 'run:relicReady'
   | 'run:bossDefeated';
+
+export type TurnPhase = 'PLAYER_TURN' | 'AI_TURN';
