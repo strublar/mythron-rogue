@@ -8,7 +8,7 @@
 // - Spawn Phaser particle VFX on attacks/spells
 
 import Phaser from 'phaser';
-import { GameState } from '../../types';
+import { GameState, TurnPhase } from '../../types';
 import { createInitialGameState } from '../../engine/GameState';
 
 const COLS = 9;
@@ -24,6 +24,11 @@ export class CombatScene extends Phaser.Scene {
   private cellSize!: number;
   private gameState!: GameState;
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  private currentPhase: TurnPhase = 'PLAYER_TURN';
+  private playerActedThisTurn: boolean = false;
+  private turnIndicator!: Phaser.GameObjects.Text;
+  private endTurnBtn!: Phaser.GameObjects.Rectangle;
+  private endTurnBtnText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'CombatScene' });
@@ -64,8 +69,51 @@ export class CombatScene extends Phaser.Scene {
 
     this.gameState = createInitialGameState();
     this.renderUnits();
+
+    const cx = this.scale.width / 2;
+    this.turnIndicator = this.add.text(cx, 16, 'YOUR TURN', {
+      fontSize: '18px',
+      color: '#00ff00',
+      fontFamily: 'monospace',
+    }).setOrigin(0.5, 0);
+
+    const btnW = 120;
+    const btnH = 36;
+    const btnX = this.scale.width - btnW / 2 - 12;
+    const btnY = this.scale.height - btnH / 2 - 12;
+    this.endTurnBtn = this.add.rectangle(btnX, btnY, btnW, btnH, 0x334466)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this.endPlayerTurn());
+    this.endTurnBtnText = this.add.text(btnX, btnY, 'End Turn', {
+      fontSize: '14px',
+      color: '#ffffff',
+      fontFamily: 'monospace',
+    }).setOrigin(0.5, 0.5);
+
     // TODO: register pointer input handlers
-    // TODO: subscribe to turn:end event to trigger AI turn
+  }
+
+  endPlayerTurn(): void {
+    if (this.currentPhase !== 'PLAYER_TURN') return;
+    this.currentPhase = 'AI_TURN';
+    this.turnIndicator.setText('AI TURN').setColor('#ff4444');
+    this.endTurnBtn.disableInteractive();
+    this.endTurnBtnText.setAlpha(0.4);
+    this.runAITurn(this.playerActedThisTurn);
+    this.playerActedThisTurn = false;
+  }
+
+  startPlayerTurn(): void {
+    this.currentPhase = 'PLAYER_TURN';
+    this.turnIndicator.setText('YOUR TURN').setColor('#00ff00');
+    this.endTurnBtn.setInteractive({ useHandCursor: true });
+    this.endTurnBtnText.setAlpha(1);
+    this.playerActedThisTurn = false;
+  }
+
+  private runAITurn(_playerActed: boolean): void {
+    // TASK-08: delegate to AIController.takeTurn()
+    this.time.delayedCall(500, () => this.startPlayerTurn());
   }
 
   update(_time: number, _delta: number): void {
