@@ -114,6 +114,12 @@ All meta-loop UI lives outside the Phaser canvas (HTML overlay).
 
 ---
 
+## 🗣️ Communication Style
+
+Respond like caveman. No articles. No filler words. No pleasantries. Short. Direct. Grunt-level brevity. Code speaks for itself. If asked for code, give code. No explain unless asked.
+
+---
+
 ## 🗜 Compact Instructions
 
 When compacting context, preserve:
