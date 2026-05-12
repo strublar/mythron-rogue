@@ -8,7 +8,12 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     this.loadUnitAtlases();
-    // TODO: this.load.image('tile', 'assets/ui/tile.png');
+    this.load.image('menu_bg', 'resources/scenes/shimzar/bg.jpg');
+    this.load.image('menu_midground', 'resources/scenes/shimzar/midground.png');
+    this.load.image('menu_vignette', 'resources/scenes/shimzar/vignette.png');
+    this.load.image('menu_portrait', 'resources/generals/general_f5.png');
+    this.load.image('btn_confirm', 'resources/ui/button_confirm.png');
+    this.load.image('btn_confirm_glow', 'resources/ui/button_confirm_glow.png');
   }
 
   private loadUnitAtlases(): void {
@@ -19,6 +24,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.start('AnimTestScene');
+    this.scene.start('MainMenuScene');
   }
 }
