@@ -16,6 +16,7 @@ export function createInitialGameState(): GameState {
     statusEffects: [],
     hasMoved: false,
     hasAttacked: false,
+    isGeneral: true,
   };
 
   const enemyGeneral: Unit = {
@@ -27,6 +28,7 @@ export function createInitialGameState(): GameState {
     statusEffects: [],
     hasMoved: false,
     hasAttacked: false,
+    isGeneral: true,
   };
 
   // TODO: validate board dimensions are BOARD_COLS × BOARD_ROWS
