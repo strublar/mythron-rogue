@@ -13,7 +13,7 @@ export class BootScene extends Phaser.Scene {
 
   private loadUnitAtlases(): void {
     for (const [unitKey, def] of Object.entries(UNIT_DEFS)) {
-      const base = `assets/units/${unitKey}/${unitKey}`;
+      const base = `resources/units/${unitKey}`;
       this.load.atlas(def.atlasKey, `${base}.png`, `${base}_atlas.json`);
     }
   }

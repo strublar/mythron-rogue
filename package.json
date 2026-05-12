@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "extract-sprites": "node scripts/extract-sprites.mjs",
+    "plist-to-atlas": "node scripts/batch-plist-to-atlas.mjs"
   },
   "dependencies": {
     "phaser": "^3.80.1",
@@ -17,6 +19,8 @@
   "devDependencies": {
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "ase-parser": "^0.0.18",
+    "sharp": "^0.33.0",
     "typescript": "^5.4.5",
     "vite": "^5.2.11"
   }

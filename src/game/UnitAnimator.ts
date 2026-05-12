@@ -29,6 +29,11 @@ export interface UnitDef {
 
 // Registry of unit definitions. Add new units here.
 export const UNIT_DEFS: Record<string, UnitDef> = {
+  f1_general: {
+    atlasKey: 'f1_general',
+    framePrefix: 'f1_general',
+    availableAnims: ['idle', 'run', 'attack', 'hit', 'death', 'breathing', 'cast', 'caststart', 'castloop', 'castend'],
+  },
   f5_general: {
     atlasKey: 'f5_general',
     framePrefix: 'f5_general',
