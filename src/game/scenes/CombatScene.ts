@@ -11,6 +11,7 @@ import Phaser from 'phaser';
 import { GameState, TurnPhase, Unit, Position } from '../../types';
 import { createInitialGameState } from '../../engine/GameState';
 import { reachableTiles, attackableTargets } from '../../engine/BoardState';
+import { createUnitSprite, playUnitAnim, UnitAnimKey } from '../UnitAnimator';
 
 const COLS = 9;
 const ROWS = 5;
@@ -23,6 +24,7 @@ export class CombatScene extends Phaser.Scene {
   private cellSize!: number;
   private gameState!: GameState;
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  private unitKeyMap: Map<string, string> = new Map();
   private bracketSprites: Map<string, Phaser.GameObjects.Image> = new Map();
   private currentPhase: TurnPhase = 'PLAYER_TURN';
   private playerActedThisTurn: boolean = false;
@@ -365,13 +367,13 @@ export class CombatScene extends Phaser.Scene {
   private renderUnits(): void {
     for (const unit of this.gameState.units) {
       const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
-      const atlasKey = unit.faction === 'player' ? 'f1_general' : 'f2_general';
-      const frameKey = unit.faction === 'player' ? 'f1_general_idle_000' : 'f2_general_idle_000';
-      const sprite = this.add.sprite(x, y, atlasKey, frameKey)
+      const unitKey = unit.faction === 'player' ? 'f1_general' : 'f2_general';
+      const sprite = createUnitSprite(this, unitKey, x, y)
         .setDisplaySize(this.cellSize * 0.8, this.cellSize * 0.8)
         .setDepth(5);
       if (unit.faction === 'enemy') sprite.setFlipX(true);
       this.unitSprites.set(unit.id, sprite);
+      this.unitKeyMap.set(unit.id, unitKey);
 
       const bracketKey = unit.faction === 'player' ? 'bracket_p' : 'bracket_e';
       const bracket = this.add.image(x, y, bracketKey)
@@ -457,7 +459,12 @@ export class CombatScene extends Phaser.Scene {
     const sprite = this.unitSprites.get(unit.id);
     if (sprite) {
       const { x, y } = this.cellToPixel(pos.col, pos.row);
-      this.tweens.add({ targets: sprite, x, y, duration: 200, ease: 'Linear' });
+      const unitKey = this.unitKeyMap.get(unit.id) ?? '';
+      playUnitAnim(sprite, unitKey, 'run', false);
+      this.tweens.add({
+        targets: sprite, x, y, duration: 1000, ease: 'Linear',
+        onComplete: () => playUnitAnim(sprite, unitKey, 'idle', false),
+      });
     }
     this.clearHighlights();
     this.selectedUnit = null;
@@ -468,17 +475,69 @@ export class CombatScene extends Phaser.Scene {
     attacker.stats.hp -= defender.stats.attack;
     attacker.hasAttacked = true;
     this.playerActedThisTurn = true;
-    this.updateHPDisplay(attacker);
-    this.updateHPDisplay(defender);
     this.refreshHUD();
-    if (defender.stats.hp <= 0) this.handleDeath(defender);
-    if (attacker.stats.hp <= 0) this.handleDeath(attacker);
+
+    const attackerSprite = this.unitSprites.get(attacker.id);
+    const defenderSprite = this.unitSprites.get(defender.id);
+    const attackerKey = this.unitKeyMap.get(attacker.id) ?? '';
+    const defenderKey = this.unitKeyMap.get(defender.id) ?? '';
+    const attackerDied = attacker.stats.hp <= 0;
+    const defenderDied = defender.stats.hp <= 0;
+
+    const afterHit = () => {
+      this.updateHPDisplay(attacker);
+      this.updateHPDisplay(defender);
+      if (defenderDied) this.handleDeath(defender);
+      else if (defenderSprite) playUnitAnim(defenderSprite, defenderKey, 'idle', false);
+      if (attackerDied) this.handleDeath(attacker);
+      else if (attackerSprite) playUnitAnim(attackerSprite, attackerKey, 'idle', false);
+    };
+
+    const afterAttack = () => {
+      if (defenderSprite) {
+        this.playAnimThen(defenderSprite, defenderKey, 'hit', afterHit);
+      } else {
+        afterHit();
+      }
+    };
+
+    if (attackerSprite) {
+      this.playAnimThen(attackerSprite, attackerKey, 'attack', afterAttack);
+    } else {
+      afterAttack();
+    }
+  }
+
+  private playAnimThen(
+    sprite: Phaser.GameObjects.Sprite,
+    unitKey: string,
+    anim: UnitAnimKey,
+    callback: () => void,
+  ): void {
+    const globalKey = `${unitKey}_${anim}`;
+    if (sprite.scene?.anims.exists(globalKey)) {
+      sprite.once('animationcomplete', callback);
+      playUnitAnim(sprite, unitKey, anim, false);
+    } else {
+      callback();
+    }
   }
 
   private handleDeath(unit: Unit): void {
     this.gameState.units = this.gameState.units.filter(u => u.id !== unit.id);
-    this.unitSprites.get(unit.id)?.destroy();
+    const dyingSprite = this.unitSprites.get(unit.id);
+    const dyingKey = this.unitKeyMap.get(unit.id) ?? '';
+    if (dyingSprite) {
+      const deathAnimKey = `${dyingKey}_death`;
+      if (dyingSprite.scene?.anims.exists(deathAnimKey)) {
+        dyingSprite.once('animationcomplete', () => dyingSprite.destroy());
+        playUnitAnim(dyingSprite, dyingKey, 'death', false);
+      } else {
+        dyingSprite.destroy();
+      }
+    }
     this.unitSprites.delete(unit.id);
+    this.unitKeyMap.delete(unit.id);
     this.bracketSprites.get(unit.id)?.destroy();
     this.bracketSprites.delete(unit.id);
     this.hpLabels.get(unit.id)?.destroy();

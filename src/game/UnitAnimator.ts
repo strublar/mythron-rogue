@@ -34,6 +34,11 @@ export const UNIT_DEFS: Record<string, UnitDef> = {
     framePrefix: 'f1_general',
     availableAnims: ['idle', 'run', 'attack', 'hit', 'death', 'breathing', 'cast', 'caststart', 'castloop', 'castend'],
   },
+  f2_general: {
+    atlasKey: 'f2_general',
+    framePrefix: 'f2_general',
+    availableAnims: ['idle', 'run', 'attack', 'hit', 'death', 'breathing', 'cast', 'caststart', 'castloop', 'castend'],
+  },
   f5_general: {
     atlasKey: 'f5_general',
     framePrefix: 'f5_general',
