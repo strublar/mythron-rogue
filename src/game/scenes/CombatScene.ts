@@ -124,8 +124,7 @@ export class CombatScene extends Phaser.Scene {
   }
 
   private runAITurn(_playerActed: boolean): void {
-    // TASK-08: delegate to AIController.takeTurn()
-    this.time.delayedCall(500, () => this.startPlayerTurn());
+    this.time.delayedCall(800, () => this.startPlayerTurn());
   }
 
   update(_time: number, _delta: number): void {
