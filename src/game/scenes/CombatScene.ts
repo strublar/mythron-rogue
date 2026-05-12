@@ -8,6 +8,8 @@
 // - Spawn Phaser particle VFX on attacks/spells
 
 import Phaser from 'phaser';
+import { GameState } from '../../types';
+import { createInitialGameState } from '../../engine/GameState';
 
 const COLS = 9;
 const ROWS = 5;
@@ -20,9 +22,16 @@ export class CombatScene extends Phaser.Scene {
   private gridOriginX!: number;
   private gridOriginY!: number;
   private cellSize!: number;
+  private gameState!: GameState;
+  private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
 
   constructor() {
     super({ key: 'CombatScene' });
+  }
+
+  preload(): void {
+    this.load.atlas('f1_general', 'resources/units/f1_general.png', 'resources/units/f1_general_atlas.json');
+    this.load.atlas('f2_general', 'resources/units/f2_general.png', 'resources/units/f2_general_atlas.json');
   }
 
   create(): void {
@@ -53,8 +62,8 @@ export class CombatScene extends Phaser.Scene {
       }
     }
 
-    // TODO: createInitialGameState, wire ActionSystem + AIController
-    // TODO: render unit sprites from gameState.units
+    this.gameState = createInitialGameState();
+    this.renderUnits();
     // TODO: register pointer input handlers
     // TODO: subscribe to turn:end event to trigger AI turn
   }
@@ -62,6 +71,19 @@ export class CombatScene extends Phaser.Scene {
   update(_time: number, _delta: number): void {
     // TODO: sync sprite positions with gameState.units
     // TODO: run pending action animations from ActionSystem queue
+  }
+
+  private renderUnits(): void {
+    for (const unit of this.gameState.units) {
+      const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
+      const atlasKey = unit.faction === 'player' ? 'f1_general' : 'f2_general';
+      const frameKey = unit.faction === 'player' ? 'f1_general_idle_000' : 'f2_general_idle_000';
+      const sprite = this.add.sprite(x, y, atlasKey, frameKey);
+      if (unit.faction === 'enemy') {
+        sprite.setFlipX(true);
+      }
+      this.unitSprites.set(unit.id, sprite);
+    }
   }
 
   protected cellToPixel(col: number, row: number): { x: number; y: number } {
