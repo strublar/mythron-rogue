@@ -25,7 +25,6 @@ export class CombatScene extends Phaser.Scene {
   private gameState!: GameState;
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private unitKeyMap: Map<string, string> = new Map();
-  private bracketSprites: Map<string, Phaser.GameObjects.Image> = new Map();
   private currentPhase: TurnPhase = 'PLAYER_TURN';
   private playerActedThisTurn: boolean = false;
   private selectedUnit: Unit | null = null;
@@ -34,6 +33,8 @@ export class CombatScene extends Phaser.Scene {
   private attackablePositions: Position[] = [];
   private hpLabels: Map<string, Phaser.GameObjects.Text> = new Map();
   private hpIcons: Map<string, Phaser.GameObjects.Image> = new Map();
+  private atkLabels: Map<string, Phaser.GameObjects.Text> = new Map();
+  private atkIcons: Map<string, Phaser.GameObjects.Image> = new Map();
   private turnIndicator!: Phaser.GameObjects.Text;
   private endTurnImage!: Phaser.GameObjects.Image;
   private manaIcons: Phaser.GameObjects.Image[] = [];
@@ -69,6 +70,9 @@ export class CombatScene extends Phaser.Scene {
       this.load.image('notif_yours',   'resources/ui/notification_your_turn.png');
       this.load.image('notif_enemy',   'resources/ui/notification_enemy_turn.png');
       this.load.image('status_panel',  'resources/ui/status_panel.png');
+      this.load.image('icon_atk',      'resources/ui/icon_atk.png');
+      this.load.image('portrait_p',    'resources/generals/general_f1.png');
+      this.load.image('portrait_e',    'resources/generals/general_f2.png');
     }
   }
 
@@ -135,37 +139,59 @@ export class CombatScene extends Phaser.Scene {
   }
 
   private drawPlayerHUDs(): void {
-    const { width } = this.scale;
+    const { width, height } = this.scale;
     const gs = this.gameState;
     const depth = 10;
-    const py = 8;
+    const panelCx = this.gridOriginX / 2;          // centre of left panel
+    const panelCxR = width - panelCx;               // centre of right panel
+    const portraitSize = Math.min(panelCx * 1.4, 100);
+    const portraitY = 56;
+    const nameY = portraitY + portraitSize / 2 + 10;
+    const hpY = nameY + 18;
+    const manaY = hpY + 22;
+    const deckY = manaY + 16;
+    void height; // available for future vertical layout
 
-    // --- Player 1 (top-left) ---
-    this.add.text(10, py, 'PLAYER 1', { fontSize: '11px', color: '#aaddff', fontFamily: 'monospace' })
-      .setDepth(depth);
-    const hpIcon1 = this.add.image(10, py + 18, 'icon_hp').setDisplaySize(14, 14).setOrigin(0, 0.5).setDepth(depth);
-    void hpIcon1;
-    this.playerHpText = this.add.text(28, py + 11, `${gs.player.general.stats.hp}/${gs.player.general.stats.maxHp}`, {
-      fontSize: '11px', color: '#ffffff', fontFamily: 'monospace',
-    }).setDepth(depth);
-    this.drawManaPips(10, py + 32, gs.player.mana, gs.player.maxMana, depth);
+    // --- Player (left panel) ---
+    this.add.image(panelCx, portraitY, 'portrait_p')
+      .setDisplaySize(portraitSize, portraitSize)
+      .setDepth(depth).setTint(0x88aaff);
+    this.add.text(panelCx, nameY, 'YOU', {
+      fontSize: '11px', color: '#aaddff', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0).setDepth(depth);
+    this.add.image(panelCx - 22, hpY + 7, 'icon_hp')
+      .setDisplaySize(16, 16).setDepth(depth);
+    this.playerHpText = this.add.text(panelCx - 6, hpY, `${gs.player.general.stats.hp}`, {
+      fontSize: '15px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0, 0).setDepth(depth);
+    this.drawManaPips(panelCx - (gs.player.maxMana * 7), manaY, gs.player.mana, gs.player.maxMana, depth);
+    this.add.text(panelCx, deckY, `HAND ${gs.player.hand.length}`, {
+      fontSize: '9px', color: '#aaaaaa', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0).setDepth(depth);
 
-    // --- Player 2 (top-right) ---
-    this.add.text(width - 10, py, 'PLAYER 2', { fontSize: '11px', color: '#ffaaaa', fontFamily: 'monospace' })
-      .setOrigin(1, 0).setDepth(depth);
-    const hpIcon2 = this.add.image(width - 10, py + 18, 'icon_hp').setDisplaySize(14, 14).setOrigin(1, 0.5).setDepth(depth);
-    void hpIcon2;
-    this.enemyHpText = this.add.text(width - 28, py + 11, `${gs.enemy.general.stats.hp}/${gs.enemy.general.stats.maxHp}`, {
-      fontSize: '11px', color: '#ffffff', fontFamily: 'monospace',
-    }).setOrigin(1, 0).setDepth(depth);
-    this.drawManaPips(width - 10 - (MAX_MANA * 14), py + 32, gs.enemy.mana, gs.enemy.maxMana, depth);
+    // --- Enemy (right panel) ---
+    this.add.image(panelCxR, portraitY, 'portrait_e')
+      .setDisplaySize(portraitSize, portraitSize)
+      .setDepth(depth).setTint(0xff8888).setFlipX(true);
+    this.add.text(panelCxR, nameY, 'VAATH THE IMMORTAL', {
+      fontSize: '9px', color: '#ffaaaa', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0).setDepth(depth);
+    this.add.image(panelCxR - 22, hpY + 7, 'icon_hp')
+      .setDisplaySize(16, 16).setDepth(depth);
+    this.enemyHpText = this.add.text(panelCxR - 6, hpY, `${gs.enemy.general.stats.hp}`, {
+      fontSize: '15px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0, 0).setDepth(depth);
+    this.drawManaPips(panelCxR - (gs.enemy.maxMana * 7), manaY, gs.enemy.mana, gs.enemy.maxMana, depth);
+    this.add.text(panelCxR, deckY, `HAND ${gs.enemy.hand.length}`, {
+      fontSize: '9px', color: '#aaaaaa', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0).setDepth(depth);
   }
 
   private drawManaPips(startX: number, y: number, mana: number, maxMana: number, depth: number): void {
     for (let i = 0; i < MAX_MANA; i++) {
       const key = i < maxMana && i < mana ? 'icon_mana' : 'icon_mana_off';
-      const icon = this.add.image(startX + i * 14 + 7, y, key)
-        .setDisplaySize(12, 12).setDepth(depth);
+      const icon = this.add.image(startX + i * 11 + 5, y, key)
+        .setDisplaySize(10, 10).setDepth(depth);
       this.manaIcons.push(icon);
     }
   }
@@ -215,16 +241,17 @@ export class CombatScene extends Phaser.Scene {
 
   private refreshHUD(): void {
     const gs = this.gameState;
-    this.playerHpText.setText(`${gs.player.general.stats.hp}/${gs.player.general.stats.maxHp}`);
-    this.enemyHpText.setText(`${gs.enemy.general.stats.hp}/${gs.enemy.general.stats.maxHp}`);
-    // Refresh mana pips
+    this.playerHpText.setText(`${gs.player.general.stats.hp}`);
+    this.enemyHpText.setText(`${gs.enemy.general.stats.hp}`);
     for (const icon of this.manaIcons) icon.destroy();
     this.manaIcons = [];
     const { width } = this.scale;
     const depth = 10;
-    const py = 8;
-    this.drawManaPips(10, py + 32, gs.player.mana, gs.player.maxMana, depth);
-    this.drawManaPips(width - 10 - (MAX_MANA * 14), py + 32, gs.enemy.mana, gs.enemy.maxMana, depth);
+    const panelCx = this.gridOriginX / 2;
+    const panelCxR = width - panelCx;
+    const manaY = 56 + Math.min(panelCx * 1.4, 100) / 2 + 10 + 18 + 22;
+    this.drawManaPips(panelCx - (gs.player.maxMana * 7), manaY, gs.player.mana, gs.player.maxMana, depth);
+    this.drawManaPips(panelCxR - (gs.enemy.maxMana * 7), manaY, gs.enemy.mana, gs.enemy.maxMana, depth);
   }
 
   // ---------------------------------------------------------------------------
@@ -279,14 +306,6 @@ export class CombatScene extends Phaser.Scene {
   }
 
   update(_time: number, _delta: number): void {
-    // Sync bracket positions with unit positions (after tweens)
-    for (const unit of this.gameState.units) {
-      const bracket = this.bracketSprites.get(unit.id);
-      const sprite = this.unitSprites.get(unit.id);
-      if (bracket && sprite) {
-        bracket.setPosition(sprite.x, sprite.y);
-      }
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -375,12 +394,7 @@ export class CombatScene extends Phaser.Scene {
       if (unit.faction === 'enemy') sprite.setFlipX(true);
       this.unitSprites.set(unit.id, sprite);
       this.unitKeyMap.set(unit.id, unitKey);
-
-      const bracketKey = unit.faction === 'player' ? 'bracket_p' : 'bracket_e';
-      const bracket = this.add.image(x, y, bracketKey)
-        .setDisplaySize(this.cellSize * 1.84, this.cellSize * 1.84)
-        .setDepth(6);
-      this.bracketSprites.set(unit.id, bracket);
+      this.updateStatDisplay(unit);
     }
   }
 
@@ -388,24 +402,36 @@ export class CombatScene extends Phaser.Scene {
   // HP display
   // ---------------------------------------------------------------------------
 
-  private updateHPDisplay(unit: Unit): void {
+  private updateStatDisplay(unit: Unit): void {
     const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
-    const labelY = y + this.cellSize * 0.42;
-    const iconX = x - 10;
+    const badgeY = y + this.cellSize * 0.38;
+    const atkX = x - this.cellSize * 0.28;
+    const hpX  = x + this.cellSize * 0.10;
 
-    const existingLabel = this.hpLabels.get(unit.id);
-    const existingIcon = this.hpIcons.get(unit.id);
-    if (existingLabel) {
-      existingLabel.setText(`${unit.stats.hp}`).setPosition(x + 2, labelY);
-      existingIcon?.setPosition(iconX, labelY + 6);
+    const existingHp  = this.hpLabels.get(unit.id);
+    const existingAtk = this.atkLabels.get(unit.id);
+
+    if (existingHp && existingAtk) {
+      existingHp.setText(`${unit.stats.hp}`).setPosition(hpX + 12, badgeY);
+      this.hpIcons.get(unit.id)?.setPosition(hpX, badgeY + 5);
+      existingAtk.setText(`${unit.stats.attack}`).setPosition(atkX + 12, badgeY);
+      this.atkIcons.get(unit.id)?.setPosition(atkX, badgeY + 5);
     } else {
-      const icon = this.add.image(iconX, labelY + 6, 'icon_hp')
-        .setDisplaySize(12, 12).setDepth(7);
-      this.hpIcons.set(unit.id, icon);
-      const label = this.add.text(x + 2, labelY, `${unit.stats.hp}`, {
-        fontSize: '10px', color: '#ffffff', fontFamily: 'monospace',
-      }).setOrigin(0.5, 0).setDepth(7);
-      this.hpLabels.set(unit.id, label);
+      const hpIcon = this.add.image(hpX, badgeY + 5, 'icon_hp')
+        .setDisplaySize(10, 10).setDepth(7);
+      this.hpIcons.set(unit.id, hpIcon);
+      const hpLabel = this.add.text(hpX + 12, badgeY, `${unit.stats.hp}`, {
+        fontSize: '10px', color: '#ff8888', fontFamily: 'monospace',
+      }).setOrigin(0, 0).setDepth(7);
+      this.hpLabels.set(unit.id, hpLabel);
+
+      const atkIcon = this.add.image(atkX, badgeY + 5, 'icon_atk')
+        .setDisplaySize(10, 10).setDepth(7);
+      this.atkIcons.set(unit.id, atkIcon);
+      const atkLabel = this.add.text(atkX + 12, badgeY, `${unit.stats.attack}`, {
+        fontSize: '10px', color: '#ffdd44', fontFamily: 'monospace',
+      }).setOrigin(0, 0).setDepth(7);
+      this.atkLabels.set(unit.id, atkLabel);
     }
   }
 
@@ -464,7 +490,10 @@ export class CombatScene extends Phaser.Scene {
       playUnitAnim(sprite, unitKey, 'run', false);
       this.tweens.add({
         targets: sprite, x, y, duration: 1000, ease: 'Linear',
-        onComplete: () => playUnitAnim(sprite, unitKey, 'idle', false),
+        onComplete: () => {
+          playUnitAnim(sprite, unitKey, 'idle', false);
+          this.updateStatDisplay(unit);
+        },
       });
     }
     this.clearHighlights();
@@ -486,8 +515,8 @@ export class CombatScene extends Phaser.Scene {
     const defenderDied = defender.stats.hp <= 0;
 
     const afterHit = () => {
-      this.updateHPDisplay(attacker);
-      this.updateHPDisplay(defender);
+      this.updateStatDisplay(attacker);
+      this.updateStatDisplay(defender);
       if (defenderDied) this.handleDeath(defender);
       else if (defenderSprite) playUnitAnim(defenderSprite, defenderKey, 'idle', false);
       if (attackerDied) this.handleDeath(attacker);
@@ -539,12 +568,14 @@ export class CombatScene extends Phaser.Scene {
     }
     this.unitSprites.delete(unit.id);
     this.unitKeyMap.delete(unit.id);
-    this.bracketSprites.get(unit.id)?.destroy();
-    this.bracketSprites.delete(unit.id);
     this.hpLabels.get(unit.id)?.destroy();
     this.hpLabels.delete(unit.id);
     this.hpIcons.get(unit.id)?.destroy();
     this.hpIcons.delete(unit.id);
+    this.atkLabels.get(unit.id)?.destroy();
+    this.atkLabels.delete(unit.id);
+    this.atkIcons.get(unit.id)?.destroy();
+    this.atkIcons.delete(unit.id);
     if (unit.isGeneral) {
       this.showGameOver(unit.faction === 'player' ? 'DEFEAT' : 'VICTORY');
     }
