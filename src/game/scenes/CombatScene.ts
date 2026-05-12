@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import { GameState, TurnPhase, Unit, Position } from '../../types';
 import { createInitialGameState } from '../../engine/GameState';
-import { reachableTiles } from '../../engine/BoardState';
+import { reachableTiles, attackableTargets } from '../../engine/BoardState';
 
 const COLS = 9;
 const ROWS = 5;
@@ -30,6 +30,8 @@ export class CombatScene extends Phaser.Scene {
   private selectedUnit: Unit | null = null;
   private highlightedTiles: Phaser.GameObjects.Rectangle[] = [];
   private highlightedPositions: Position[] = [];
+  private attackablePositions: Position[] = [];
+  private hpLabels: Map<string, Phaser.GameObjects.Text> = new Map();
   private turnIndicator!: Phaser.GameObjects.Text;
   private endTurnBtn!: Phaser.GameObjects.Rectangle;
   private endTurnBtnText!: Phaser.GameObjects.Text;
@@ -114,7 +116,10 @@ export class CombatScene extends Phaser.Scene {
     this.endTurnBtnText.setAlpha(1);
     this.playerActedThisTurn = false;
     for (const unit of this.gameState.units) {
-      if (unit.faction === 'player') unit.hasMoved = false;
+      if (unit.faction === 'player') {
+        unit.hasMoved = false;
+        unit.hasAttacked = false;
+      }
     }
   }
 
@@ -133,12 +138,14 @@ export class CombatScene extends Phaser.Scene {
     const pos = this.pixelToCell(x, y);
     if (!pos) return;
     const unit = this.gameState.units.find(u => u.position.col === pos.col && u.position.row === pos.row);
-    if (unit?.faction === 'player' && !unit.hasMoved) {
-      this.selectedUnit = unit;
-      this.showReachableTiles(unit);
-      return;
-    }
     if (this.selectedUnit) {
+      const isAttackable = this.attackablePositions.some(p => p.col === pos.col && p.row === pos.row);
+      if (isAttackable && unit && unit.faction !== 'player') {
+        this.resolveAttack(this.selectedUnit, unit);
+        this.clearHighlights();
+        this.selectedUnit = null;
+        return;
+      }
       const isHighlighted = this.highlightedPositions.some(p => p.col === pos.col && p.row === pos.row);
       if (isHighlighted && !unit) {
         this.moveUnit(this.selectedUnit, pos);
@@ -146,6 +153,10 @@ export class CombatScene extends Phaser.Scene {
       }
       this.clearHighlights();
       this.selectedUnit = null;
+    }
+    if (unit?.faction === 'player' && (!unit.hasMoved || !unit.hasAttacked)) {
+      this.selectedUnit = unit;
+      this.showReachableTiles(unit);
     }
   }
 
@@ -158,11 +169,26 @@ export class CombatScene extends Phaser.Scene {
 
   private showReachableTiles(unit: Unit): void {
     this.clearHighlights();
-    const tiles = reachableTiles(unit, this.gameState.units);
-    this.highlightedPositions = tiles;
-    for (const pos of tiles) {
-      const { x, y } = this.cellToPixel(pos.col, pos.row);
-      const rect = this.add.rectangle(x, y, this.cellSize - 2, this.cellSize - 2, 0x0066ff, 0.4);
+    if (!unit.hasMoved) {
+      const tiles = reachableTiles(unit, this.gameState.units);
+      this.highlightedPositions = tiles;
+      for (const pos of tiles) {
+        const { x, y } = this.cellToPixel(pos.col, pos.row);
+        const rect = this.add.rectangle(x, y, this.cellSize - 2, this.cellSize - 2, 0x0066ff, 0.4);
+        this.highlightedTiles.push(rect);
+      }
+    }
+    if (!unit.hasAttacked) {
+      this.showAttackableTargets(unit);
+    }
+  }
+
+  private showAttackableTargets(unit: Unit): void {
+    const targets = attackableTargets(unit, this.gameState.units);
+    this.attackablePositions = targets.map(t => t.position);
+    for (const target of targets) {
+      const { x, y } = this.cellToPixel(target.position.col, target.position.row);
+      const rect = this.add.rectangle(x, y, this.cellSize - 2, this.cellSize - 2, 0xff2200, 0.5);
       this.highlightedTiles.push(rect);
     }
   }
@@ -171,6 +197,7 @@ export class CombatScene extends Phaser.Scene {
     for (const r of this.highlightedTiles) r.destroy();
     this.highlightedTiles = [];
     this.highlightedPositions = [];
+    this.attackablePositions = [];
   }
 
   private moveUnit(unit: Unit, pos: Position): void {
@@ -196,6 +223,42 @@ export class CombatScene extends Phaser.Scene {
       }
       this.unitSprites.set(unit.id, sprite);
     }
+  }
+
+  private resolveAttack(attacker: Unit, defender: Unit): void {
+    defender.stats.hp -= attacker.stats.attack;
+    attacker.stats.hp -= defender.stats.attack;
+    attacker.hasAttacked = true;
+    this.playerActedThisTurn = true;
+    this.updateHPDisplay(attacker);
+    this.updateHPDisplay(defender);
+    if (defender.stats.hp <= 0) this.handleDeath(defender);
+    if (attacker.stats.hp <= 0) this.handleDeath(attacker);
+  }
+
+  private updateHPDisplay(unit: Unit): void {
+    const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
+    const labelY = y + this.cellSize * 0.4;
+    const existing = this.hpLabels.get(unit.id);
+    if (existing) {
+      existing.setText(`${unit.stats.hp} HP`).setPosition(x, labelY);
+    } else {
+      const label = this.add.text(x, labelY, `${unit.stats.hp} HP`, {
+        fontSize: '10px',
+        color: '#ffffff',
+        fontFamily: 'monospace',
+      }).setOrigin(0.5, 0.5);
+      this.hpLabels.set(unit.id, label);
+    }
+  }
+
+  private handleDeath(unit: Unit): void {
+    this.gameState.units = this.gameState.units.filter(u => u.id !== unit.id);
+    this.unitSprites.get(unit.id)?.destroy();
+    this.unitSprites.delete(unit.id);
+    this.hpLabels.get(unit.id)?.destroy();
+    this.hpLabels.delete(unit.id);
+    // TASK-09: check isGeneral and show game-over screen
   }
 
   protected cellToPixel(col: number, row: number): { x: number; y: number } {
