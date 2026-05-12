@@ -8,8 +8,9 @@
 // - Spawn Phaser particle VFX on attacks/spells
 
 import Phaser from 'phaser';
-import { GameState, TurnPhase } from '../../types';
+import { GameState, TurnPhase, Unit, Position } from '../../types';
 import { createInitialGameState } from '../../engine/GameState';
+import { reachableTiles } from '../../engine/BoardState';
 
 const COLS = 9;
 const ROWS = 5;
@@ -26,6 +27,9 @@ export class CombatScene extends Phaser.Scene {
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private currentPhase: TurnPhase = 'PLAYER_TURN';
   private playerActedThisTurn: boolean = false;
+  private selectedUnit: Unit | null = null;
+  private highlightedTiles: Phaser.GameObjects.Rectangle[] = [];
+  private highlightedPositions: Position[] = [];
   private turnIndicator!: Phaser.GameObjects.Text;
   private endTurnBtn!: Phaser.GameObjects.Rectangle;
   private endTurnBtnText!: Phaser.GameObjects.Text;
@@ -90,7 +94,7 @@ export class CombatScene extends Phaser.Scene {
       fontFamily: 'monospace',
     }).setOrigin(0.5, 0.5);
 
-    // TODO: register pointer input handlers
+    this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => this.handlePointerDown(ptr.x, ptr.y));
   }
 
   endPlayerTurn(): void {
@@ -109,6 +113,9 @@ export class CombatScene extends Phaser.Scene {
     this.endTurnBtn.setInteractive({ useHandCursor: true });
     this.endTurnBtnText.setAlpha(1);
     this.playerActedThisTurn = false;
+    for (const unit of this.gameState.units) {
+      if (unit.faction === 'player') unit.hasMoved = false;
+    }
   }
 
   private runAITurn(_playerActed: boolean): void {
@@ -119,6 +126,63 @@ export class CombatScene extends Phaser.Scene {
   update(_time: number, _delta: number): void {
     // TODO: sync sprite positions with gameState.units
     // TODO: run pending action animations from ActionSystem queue
+  }
+
+  private handlePointerDown(x: number, y: number): void {
+    if (this.currentPhase !== 'PLAYER_TURN') return;
+    const pos = this.pixelToCell(x, y);
+    if (!pos) return;
+    const unit = this.gameState.units.find(u => u.position.col === pos.col && u.position.row === pos.row);
+    if (unit?.faction === 'player' && !unit.hasMoved) {
+      this.selectedUnit = unit;
+      this.showReachableTiles(unit);
+      return;
+    }
+    if (this.selectedUnit) {
+      const isHighlighted = this.highlightedPositions.some(p => p.col === pos.col && p.row === pos.row);
+      if (isHighlighted && !unit) {
+        this.moveUnit(this.selectedUnit, pos);
+        return;
+      }
+      this.clearHighlights();
+      this.selectedUnit = null;
+    }
+  }
+
+  private pixelToCell(x: number, y: number): Position | null {
+    const col = Math.floor((x - this.gridOriginX) / this.cellSize);
+    const row = Math.floor((y - this.gridOriginY) / this.cellSize);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    return { col, row };
+  }
+
+  private showReachableTiles(unit: Unit): void {
+    this.clearHighlights();
+    const tiles = reachableTiles(unit, this.gameState.units);
+    this.highlightedPositions = tiles;
+    for (const pos of tiles) {
+      const { x, y } = this.cellToPixel(pos.col, pos.row);
+      const rect = this.add.rectangle(x, y, this.cellSize - 2, this.cellSize - 2, 0x0066ff, 0.4);
+      this.highlightedTiles.push(rect);
+    }
+  }
+
+  private clearHighlights(): void {
+    for (const r of this.highlightedTiles) r.destroy();
+    this.highlightedTiles = [];
+    this.highlightedPositions = [];
+  }
+
+  private moveUnit(unit: Unit, pos: Position): void {
+    unit.position = pos;
+    unit.hasMoved = true;
+    const sprite = this.unitSprites.get(unit.id);
+    if (sprite) {
+      const { x, y } = this.cellToPixel(pos.col, pos.row);
+      this.tweens.add({ targets: sprite, x, y, duration: 200, ease: 'Linear' });
+    }
+    this.clearHighlights();
+    this.selectedUnit = null;
   }
 
   private renderUnits(): void {
