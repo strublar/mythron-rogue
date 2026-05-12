@@ -75,8 +75,9 @@ export class CombatScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Grid geometry — leave room for bottom bar (~80px)
-    const availableHeight = height - 90;
+    // Grid geometry — leave room for top UI (~55px) and bottom bar (~80px)
+    const TOP_UI_H = 55;
+    const availableHeight = height - 90 - TOP_UI_H;
     this.cellSize = Math.floor(Math.min(
       (width * GRID_WIDTH_RATIO) / COLS,
       availableHeight / ROWS,
@@ -84,7 +85,7 @@ export class CombatScene extends Phaser.Scene {
     const gridWidth = COLS * this.cellSize;
     const gridHeight = ROWS * this.cellSize;
     this.gridOriginX = (width - gridWidth) / 2;
-    this.gridOriginY = (availableHeight - gridHeight) / 2 + 10;
+    this.gridOriginY = (availableHeight - gridHeight) / 2 + TOP_UI_H + 10;
 
     this.drawBackground();
     this.drawGrid();
@@ -369,7 +370,7 @@ export class CombatScene extends Phaser.Scene {
       const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
       const unitKey = unit.faction === 'player' ? 'f1_general' : 'f2_general';
       const sprite = createUnitSprite(this, unitKey, x, y)
-        .setDisplaySize(this.cellSize * 0.8, this.cellSize * 0.8)
+        .setDisplaySize(this.cellSize * 1.6, this.cellSize * 1.6)
         .setDepth(5);
       if (unit.faction === 'enemy') sprite.setFlipX(true);
       this.unitSprites.set(unit.id, sprite);
@@ -377,7 +378,7 @@ export class CombatScene extends Phaser.Scene {
 
       const bracketKey = unit.faction === 'player' ? 'bracket_p' : 'bracket_e';
       const bracket = this.add.image(x, y, bracketKey)
-        .setDisplaySize(this.cellSize * 0.92, this.cellSize * 0.92)
+        .setDisplaySize(this.cellSize * 1.84, this.cellSize * 1.84)
         .setDepth(6);
       this.bracketSprites.set(unit.id, bracket);
     }
@@ -420,7 +421,7 @@ export class CombatScene extends Phaser.Scene {
       for (const pos of tiles) {
         const { x, y } = this.cellToPixel(pos.col, pos.row);
         const img = this.add.image(x, y, 'tile_hover')
-          .setDisplaySize(this.cellSize, this.cellSize)
+          .setDisplaySize(this.cellSize * 1.15, this.cellSize * 1.15)
           .setAlpha(0.65).setDepth(4).setTint(0x4488ff);
         this.tileHighlights.push(img);
       }
@@ -436,7 +437,7 @@ export class CombatScene extends Phaser.Scene {
     for (const target of targets) {
       const { x, y } = this.cellToPixel(target.position.col, target.position.row);
       const img = this.add.image(x, y, 'tile_hover')
-        .setDisplaySize(this.cellSize, this.cellSize)
+        .setDisplaySize(this.cellSize * 1.15, this.cellSize * 1.15)
         .setAlpha(0.65).setDepth(4).setTint(0xff4400);
       this.tileHighlights.push(img);
     }
