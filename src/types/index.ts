@@ -43,6 +43,8 @@ export interface Unit {
   hasMoved: boolean;
   /** Whether unit has attacked this turn */
   hasAttacked: boolean;
+  /** True for general units — death ends the game */
+  isGeneral?: boolean;
 }
 
 // ---------------------------------------------------------------------------
