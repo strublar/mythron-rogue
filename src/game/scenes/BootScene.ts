@@ -19,7 +19,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    // TODO: start CombatScene after assets loaded
-    // this.scene.start('CombatScene');
+    this.scene.start('AnimTestScene');
   }
 }

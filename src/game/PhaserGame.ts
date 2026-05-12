@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { CombatScene } from './scenes/CombatScene';
 import { UIScene } from './scenes/UIScene';
+import { AnimTestScene } from './scenes/AnimTestScene';
 
 export function createPhaserGame(): Phaser.Game {
   // TODO: tune antialias, pixelArt, backgroundColor per art style decision
@@ -19,7 +20,7 @@ export function createPhaserGame(): Phaser.Game {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, CombatScene, UIScene],
+    scene: [BootScene, AnimTestScene, CombatScene, UIScene],
     // TODO: add physics config if projectile VFX need it
   });
 }
