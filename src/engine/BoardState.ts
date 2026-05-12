@@ -20,16 +20,42 @@ export function unitAt(units: Unit[], pos: Position): Unit | undefined {
 
 /** All positions within moveRange steps (BFS, blocked by occupied tiles) */
 export function reachableTiles(unit: Unit, allUnits: Unit[]): Position[] {
-  // TODO: implement BFS respecting occupied tiles and board bounds
-  void unit; void allUnits;
-  return [];
+  const maxSteps = unit.stats.moveRange;
+  const visited = new Map<string, number>();
+  const queue: Array<{ pos: Position; steps: number }> = [{ pos: unit.position, steps: 0 }];
+  const key = (p: Position) => `${p.col},${p.row}`;
+
+  visited.set(key(unit.position), 0);
+
+  while (queue.length > 0) {
+    const { pos, steps } = queue.shift()!;
+    if (steps >= maxSteps) continue;
+    for (const neighbor of cardinalNeighbors(pos)) {
+      const k = key(neighbor);
+      if (visited.has(k)) continue;
+      if (unitAt(allUnits, neighbor)) continue;
+      visited.set(k, steps + 1);
+      queue.push({ pos: neighbor, steps: steps + 1 });
+    }
+  }
+
+  const startKey = key(unit.position);
+  const result: Position[] = [];
+  for (const [k, _] of visited) {
+    if (k !== startKey) {
+      const [col, row] = k.split(',').map(Number);
+      result.push({ col, row });
+    }
+  }
+  return result;
 }
 
 /** All enemy units within attackRange of attacker */
 export function attackableTargets(attacker: Unit, allUnits: Unit[]): Unit[] {
-  // TODO: filter units by faction !== attacker.faction and distance <= attackRange
-  void attacker; void allUnits;
-  return [];
+  return allUnits.filter(
+    u => u.faction !== attacker.faction &&
+      manhattanDistance(attacker.position, u.position) <= attacker.stats.attackRange
+  );
 }
 
 /** Adjacent positions (cardinal only, no diagonal) */
