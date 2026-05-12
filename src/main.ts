@@ -8,3 +8,7 @@ import { mountReactApp } from './ui/App';
 
 createPhaserGame();
 mountReactApp(document.getElementById('app')!);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
