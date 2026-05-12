@@ -1,0 +1,11 @@
+{
+  "name": "Mythron Rogue",
+  "short_name": "Mythron",
+  "description": "Roguelike tactical grid combat",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": []
+}
