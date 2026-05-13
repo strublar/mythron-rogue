@@ -18,7 +18,7 @@ export function createPhaserGame(): Phaser.Game {
     backgroundColor: '#1a1a2e',
     pixelArt: true,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.EXPAND,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
     scene: [BootScene, MainMenuScene, AnimTestScene, CombatScene, UIScene],
