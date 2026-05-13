@@ -3,7 +3,7 @@ import { BOARD_COLS, BOARD_ROWS } from '../types';
 
 type CellToPixel = (col: number, row: number) => { x: number; y: number };
 
-const FLOOR_TILE_OPACITY = 0.85;
+const FLOOR_TILE_OPACITY = 0.2;
 const FLOOR_TILE_FRAME = 'tile_board.png';
 const ATLAS_KEY = 'tiles_board';
 
