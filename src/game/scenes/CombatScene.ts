@@ -82,14 +82,15 @@ export class CombatScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Pseudo-isometric grid: flat orthographic columns, foreshortened rows (tileH = tileW/2)
+    // Perspective-foreshortened grid: rows compressed by BOARD_PERSP_Y to simulate ~30° incline
+    const BOARD_PERSP_Y = 0.3;
     const TOP_UI_H = 55;
     const BOTTOM_BAR_H = 90;
     const availH = height - TOP_UI_H - BOTTOM_BAR_H;
     const tileWByWidth  = Math.floor(width * 0.78 / COLS);
-    const tileWByHeight = Math.floor(availH * 2 / ROWS);
+    const tileWByHeight = Math.floor(availH / (ROWS * BOARD_PERSP_Y));
     this.tileW = Math.min(tileWByWidth, tileWByHeight);
-    this.tileH = Math.floor(this.tileW / 2);
+    this.tileH = Math.floor(this.tileW * BOARD_PERSP_Y);
 
     // Origin = screen position of the center of cell (0,0)
     this.gridOriginX = width / 2 - ((COLS - 1) / 2) * this.tileW;
