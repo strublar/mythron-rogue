@@ -11,12 +11,12 @@ import { AnimTestScene } from './scenes/AnimTestScene';
 import { MainMenuScene } from './scenes/MainMenuScene';
 
 export function createPhaserGame(): Phaser.Game {
-  // TODO: tune antialias, pixelArt, backgroundColor per art style decision
   return new Phaser.Game({
     type: Phaser.AUTO,
     width: 1280,
     height: 720,
     backgroundColor: '#1a1a2e',
+    pixelArt: true,
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
