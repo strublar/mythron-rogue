@@ -15,13 +15,15 @@ import { createUnitSprite, playUnitAnim, UnitAnimKey } from '../UnitAnimator';
 
 const COLS = 9;
 const ROWS = 5;
-const GRID_WIDTH_RATIO = 0.72;
 const MAX_MANA = 9;
 
 export class CombatScene extends Phaser.Scene {
   private gridOriginX!: number;
   private gridOriginY!: number;
-  private cellSize!: number;
+  private tileW!: number;
+  private tileH!: number;
+  private gridLeftEdge!: number;
+  private gridRightEdge!: number;
   private gameState!: GameState;
   private unitSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private unitKeyMap: Map<string, string> = new Map();
@@ -77,17 +79,22 @@ export class CombatScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Grid geometry — leave room for top UI (~55px) and bottom bar (~80px)
+    // Isometric grid geometry — (COLS+ROWS)/2 tile-widths across, (COLS+ROWS)/4 tile-widths tall
     const TOP_UI_H = 55;
-    const availableHeight = height - 90 - TOP_UI_H;
-    this.cellSize = Math.floor(Math.min(
-      (width * GRID_WIDTH_RATIO) / COLS,
-      availableHeight / ROWS,
-    ));
-    const gridWidth = COLS * this.cellSize;
-    const gridHeight = ROWS * this.cellSize;
-    this.gridOriginX = (width - gridWidth) / 2;
-    this.gridOriginY = (availableHeight - gridHeight) / 2 + TOP_UI_H + 10;
+    const BOTTOM_BAR_H = 90;
+    const availH = height - TOP_UI_H - BOTTOM_BAR_H;
+    const tileWByWidth  = Math.floor(width * 0.78 / ((COLS + ROWS) / 2));
+    const tileWByHeight = Math.floor(availH / ((COLS + ROWS) / 4));
+    this.tileW = Math.min(tileWByWidth, tileWByHeight);
+    this.tileH = Math.floor(this.tileW / 2);
+
+    // Origin = screen position of the center of cell (0,0)
+    this.gridOriginX = width / 2 - ((COLS - ROWS) / 2) * (this.tileW / 2);
+    this.gridOriginY = (TOP_UI_H + availH / 2) - ((COLS + ROWS - 2) / 2) * (this.tileH / 2);
+
+    // Left/right grid bounding edges for HUD panel placement
+    this.gridLeftEdge  = this.gridOriginX - ROWS * (this.tileW / 2);
+    this.gridRightEdge = this.gridOriginX + COLS * (this.tileW / 2);
 
     this.drawBackground();
     this.drawGrid();
@@ -126,12 +133,10 @@ export class CombatScene extends Phaser.Scene {
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const { x, y } = this.cellToPixel(col, row);
+        const depth = col + row;
         this.add.image(x, y, 'tiles_board', 'tile_board.png')
-          .setDisplaySize(this.cellSize, this.cellSize)
-          .setDepth(2).setAlpha(0.65);
-        this.add.image(x, y, 'tiles_board', 'tile_grid.png')
-          .setDisplaySize(this.cellSize, this.cellSize)
-          .setDepth(3).setAlpha(0.25);
+          .setDisplaySize(this.tileW, this.tileH)
+          .setDepth(depth);
       }
     }
   }
@@ -140,8 +145,8 @@ export class CombatScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const gs = this.gameState;
     const depth = 10;
-    const panelCx = this.gridOriginX / 2;          // centre of left panel
-    const panelCxR = width - panelCx;               // centre of right panel
+    const panelCx = this.gridLeftEdge / 2;
+    const panelCxR = (this.gridRightEdge + width) / 2;
     const portraitSize = Math.min(panelCx * 1.4, 100);
     const portraitY = 56;
     const nameY = portraitY + portraitSize / 2 + 10;
@@ -245,8 +250,8 @@ export class CombatScene extends Phaser.Scene {
     this.manaIcons = [];
     const { width } = this.scale;
     const depth = 10;
-    const panelCx = this.gridOriginX / 2;
-    const panelCxR = width - panelCx;
+    const panelCx = this.gridLeftEdge / 2;
+    const panelCxR = (this.gridRightEdge + width) / 2;
     const manaY = 56 + Math.min(panelCx * 1.4, 100) / 2 + 10 + 18 + 22;
     this.drawManaPips(panelCx - (gs.player.maxMana * 7), manaY, gs.player.mana, gs.player.maxMana, depth);
     this.drawManaPips(panelCxR - (gs.enemy.maxMana * 7), manaY, gs.enemy.mana, gs.enemy.maxMana, depth);
@@ -369,7 +374,7 @@ export class CombatScene extends Phaser.Scene {
     const text = this.add.text(0, 0, lines, {
       fontSize: '9px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
     }).setOrigin(0.5);
-    const ty = y - this.cellSize * 0.85;
+    const ty = y - this.tileW * 0.6;
     this.tooltipContainer = this.add.container(x, ty, [panel, text]).setDepth(15);
   }
 
@@ -386,9 +391,10 @@ export class CombatScene extends Phaser.Scene {
     for (const unit of this.gameState.units) {
       const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
       const unitKey = unit.faction === 'player' ? 'f1_general' : 'f2_general';
-      const sprite = createUnitSprite(this, unitKey, x, y)
-        .setDisplaySize(this.cellSize * 1.6, this.cellSize * 1.6)
-        .setDepth(5);
+      const spriteY = y - this.tileH * 0.5;
+      const sprite = createUnitSprite(this, unitKey, x, spriteY)
+        .setDisplaySize(this.tileW, this.tileW)
+        .setDepth(unit.position.col + unit.position.row + 0.5);
       if (unit.faction === 'enemy') sprite.setFlipX(true);
       this.unitSprites.set(unit.id, sprite);
       this.unitKeyMap.set(unit.id, unitKey);
@@ -402,9 +408,9 @@ export class CombatScene extends Phaser.Scene {
 
   private updateStatDisplay(unit: Unit): void {
     const { x, y } = this.cellToPixel(unit.position.col, unit.position.row);
-    const badgeY = y + this.cellSize * 0.38;
-    const atkX = x - this.cellSize * 0.28;
-    const hpX  = x + this.cellSize * 0.10;
+    const badgeY = y + this.tileH * 0.4;
+    const atkX = x - this.tileW * 0.15;
+    const hpX  = x + this.tileW * 0.02;
 
     const existingHp  = this.hpLabels.get(unit.id);
     const existingAtk = this.atkLabels.get(unit.id);
@@ -445,8 +451,8 @@ export class CombatScene extends Phaser.Scene {
       for (const pos of tiles) {
         const { x, y } = this.cellToPixel(pos.col, pos.row);
         const img = this.add.image(x, y, 'tiles_board', 'tile_hover.png')
-          .setDisplaySize(this.cellSize * 1.15, this.cellSize * 1.15)
-          .setAlpha(0.65).setDepth(4).setTint(0x4488ff);
+          .setDisplaySize(this.tileW, this.tileH)
+          .setAlpha(0.75).setDepth(pos.col + pos.row + 0.1).setTint(0x4488ff);
         this.tileHighlights.push(img);
       }
     }
@@ -460,9 +466,9 @@ export class CombatScene extends Phaser.Scene {
     this.attackablePositions = targets.map(t => t.position);
     for (const target of targets) {
       const { x, y } = this.cellToPixel(target.position.col, target.position.row);
-      const img = this.add.image(x, y, 'tile_hover')
-        .setDisplaySize(this.cellSize * 1.15, this.cellSize * 1.15)
-        .setAlpha(0.65).setDepth(4).setTint(0xff4400);
+      const img = this.add.image(x, y, 'tiles_board', 'tile_hover.png')
+        .setDisplaySize(this.tileW, this.tileH)
+        .setAlpha(0.75).setDepth(target.position.col + target.position.row + 0.1).setTint(0xff4400);
       this.tileHighlights.push(img);
     }
   }
@@ -484,11 +490,13 @@ export class CombatScene extends Phaser.Scene {
     const sprite = this.unitSprites.get(unit.id);
     if (sprite) {
       const { x, y } = this.cellToPixel(pos.col, pos.row);
+      const spriteY = y - this.tileH * 0.5;
       const unitKey = this.unitKeyMap.get(unit.id) ?? '';
       playUnitAnim(sprite, unitKey, 'run', false);
       this.tweens.add({
-        targets: sprite, x, y, duration: 1000, ease: 'Linear',
+        targets: sprite, x, y: spriteY, duration: 1000, ease: 'Linear',
         onComplete: () => {
+          sprite.setDepth(pos.col + pos.row + 0.5);
           playUnitAnim(sprite, unitKey, 'idle', false);
           this.updateStatDisplay(unit);
         },
@@ -599,16 +607,18 @@ export class CombatScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private pixelToCell(x: number, y: number): Position | null {
-    const col = Math.floor((x - this.gridOriginX) / this.cellSize);
-    const row = Math.floor((y - this.gridOriginY) / this.cellSize);
+    const dx = (x - this.gridOriginX) / (this.tileW / 2);
+    const dy = (y - this.gridOriginY) / (this.tileH / 2);
+    const col = Math.round((dx + dy) / 2);
+    const row = Math.round((dy - dx) / 2);
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
     return { col, row };
   }
 
   protected cellToPixel(col: number, row: number): { x: number; y: number } {
     return {
-      x: this.gridOriginX + col * this.cellSize + this.cellSize / 2,
-      y: this.gridOriginY + row * this.cellSize + this.cellSize / 2,
+      x: this.gridOriginX + (col - row) * (this.tileW / 2),
+      y: this.gridOriginY + (col + row) * (this.tileH / 2),
     };
   }
 }
