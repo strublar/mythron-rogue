@@ -52,10 +52,10 @@ export class CombatScene extends Phaser.Scene {
   preload(): void {
     this.load.atlas('f1_general', 'resources/units/f1_general.png', 'resources/units/f1_general_atlas.json');
     this.load.atlas('f2_general', 'resources/units/f2_general.png', 'resources/units/f2_general_atlas.json');
+    this.load.atlas('tiles_board', 'resources/tiles/tiles_board.png', 'resources/tiles/tiles_board_atlas.json');
     if (!this.textures.exists('combat_bg')) {
       this.load.image('combat_bg',     'resources/maps/battlemap0_background.png');
       this.load.image('combat_mid',    'resources/maps/battlemap0_middleground.png');
-      this.load.atlas('tiles_board', 'resources/tiles/tiles_board.png', 'resources/tiles/tiles_board_atlas.json');
       this.load.image('tile_attack',   'resources/tiles/tile_attack.png');
       this.load.image('bottom_bar',    'resources/ui/bottom_bar_background.png');
       this.load.image('bracket_p',     'resources/ui/bracket_friendly.png');
