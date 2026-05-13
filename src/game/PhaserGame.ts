@@ -16,7 +16,7 @@ export function createPhaserGame(): Phaser.Game {
     width: 1280,
     height: 720,
     backgroundColor: '#1a1a2e',
-    pixelArt: true,
+    pixelArt: false,
     scale: {
       mode: Phaser.Scale.EXPAND,
       autoCenter: Phaser.Scale.CENTER_BOTH,
