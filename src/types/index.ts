@@ -174,6 +174,8 @@ export type GameEventType =
 
 export type TurnPhase = 'PLAYER_TURN' | 'AI_TURN';
 
+export type HighlightType = 'move' | 'attack';
+
 export type TileState =
   | 'tile_board.png'
   | 'tile_grid.png'
