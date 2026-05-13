@@ -164,6 +164,7 @@
   },
   "meta": {
     "image": "tiles_board.png",
+    "format": "RGBA8888",
     "size": { "w": 607, "h": 254 },
     "scale": "1"
   }
