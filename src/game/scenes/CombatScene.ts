@@ -55,10 +55,8 @@ export class CombatScene extends Phaser.Scene {
     if (!this.textures.exists('combat_bg')) {
       this.load.image('combat_bg',     'resources/maps/battlemap0_background.png');
       this.load.image('combat_mid',    'resources/maps/battlemap0_middleground.png');
-      this.load.image('tile_board',    'resources/tiles/tile_board.png');
-      this.load.image('tile_hover',    'resources/tiles/tile_hover.png');
+      this.load.atlas('tiles_board', 'resources/tiles/tiles_board.png', 'resources/tiles/tiles_board_atlas.json');
       this.load.image('tile_attack',   'resources/tiles/tile_attack.png');
-      this.load.image('tile_grid',     'resources/tiles/tile_grid.png');
       this.load.image('bottom_bar',    'resources/ui/bottom_bar_background.png');
       this.load.image('bracket_p',     'resources/ui/bracket_friendly.png');
       this.load.image('bracket_e',     'resources/ui/bracket_enemy.png');
@@ -128,10 +126,10 @@ export class CombatScene extends Phaser.Scene {
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const { x, y } = this.cellToPixel(col, row);
-        this.add.image(x, y, 'tile_board')
+        this.add.image(x, y, 'tiles_board', 'tile_board.png')
           .setDisplaySize(this.cellSize, this.cellSize)
           .setDepth(2).setAlpha(0.65);
-        this.add.image(x, y, 'tile_grid')
+        this.add.image(x, y, 'tiles_board', 'tile_grid.png')
           .setDisplaySize(this.cellSize, this.cellSize)
           .setDepth(3).setAlpha(0.25);
       }
@@ -446,7 +444,7 @@ export class CombatScene extends Phaser.Scene {
       this.highlightedPositions = tiles;
       for (const pos of tiles) {
         const { x, y } = this.cellToPixel(pos.col, pos.row);
-        const img = this.add.image(x, y, 'tile_hover')
+        const img = this.add.image(x, y, 'tiles_board', 'tile_hover.png')
           .setDisplaySize(this.cellSize * 1.15, this.cellSize * 1.15)
           .setAlpha(0.65).setDepth(4).setTint(0x4488ff);
         this.tileHighlights.push(img);

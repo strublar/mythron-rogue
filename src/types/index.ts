@@ -173,3 +173,28 @@ export type GameEventType =
   | 'run:bossDefeated';
 
 export type TurnPhase = 'PLAYER_TURN' | 'AI_TURN';
+
+export type TileState =
+  | 'tile_board.png'
+  | 'tile_grid.png'
+  | 'tile_hover.png'
+  | 'tile_large.png'
+  | 'tile_merged_hover_0123.png'
+  | 'tile_merged_hover_013.png'
+  | 'tile_merged_hover_01.png'
+  | 'tile_merged_hover_03.png'
+  | 'tile_merged_hover_0.png'
+  | 'tile_merged_hover_0_seam.png'
+  | 'tile_merged_large_0123.png'
+  | 'tile_merged_large_013.png'
+  | 'tile_merged_large_01.png'
+  | 'tile_merged_large_03.png'
+  | 'tile_merged_large_0.png'
+  | 'tile_merged_large_0_seam.png'
+  | 'tile_path_move_corner.png'
+  | 'tile_path_move_corner_from_start.png'
+  | 'tile_path_move_end.png'
+  | 'tile_path_move_end_from_start.png'
+  | 'tile_path_move_start.png'
+  | 'tile_path_move_straight.png'
+  | 'tile_path_move_straight_from_start.png';
