@@ -91,8 +91,13 @@ export class TileHighlightLayer {
       for (const { val, dx, dy, angle } of corners) {
         const suffix = VALUE_TO_SUFFIX[val] ?? VALUE_TO_SUFFIX[''];
         const frame = `${prefix}${suffix}.png`;
+        // For 90° and 270° rotations Phaser's setAngle swaps the visual axes,
+        // so swap displaySize dimensions to keep the post-rotation footprint at tileW/2 × tileH/2.
+        const sideways = angle === 90 || angle === 270;
+        const dispW = sideways ? this.tileH / 2 : this.tileW / 2;
+        const dispH = sideways ? this.tileW / 2 : this.tileH / 2;
         const sprite = this.scene.add.image(x + dx, y + dy, ATLAS_KEY, frame)
-          .setDisplaySize(this.tileW / 2, this.tileH / 2)
+          .setDisplaySize(dispW, dispH)
           .setAngle(angle)
           .setDepth(depth)
           .setTint(tint)

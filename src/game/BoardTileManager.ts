@@ -7,9 +7,15 @@ const FLOOR_TILE_OPACITY = 0.85;
 const FLOOR_TILE_FRAME = 'tile_board.png';
 const ATLAS_KEY = 'tiles_board';
 
+interface TileEntry {
+  img: Phaser.GameObjects.Image;
+  scaleX: number;
+  scaleY: number;
+}
+
 export class BoardTileManager {
   private scene: Phaser.Scene;
-  private tiles: Phaser.GameObjects.Image[] = [];
+  private tiles: TileEntry[] = [];
   private cellToPixel: CellToPixel;
   private tileW: number;
   private tileH: number;
@@ -29,9 +35,14 @@ export class BoardTileManager {
         const img = this.scene.add.image(x, y, ATLAS_KEY, FLOOR_TILE_FRAME)
           .setDisplaySize(this.tileW, this.tileH)
           .setDepth(col + row)
-          .setAlpha(0)
-          .setScale(0);
-        this.tiles[col + row * BOARD_COLS] = img;
+          .setAlpha(0);
+
+        // Save target scale BEFORE zeroing it so the tween knows where to go.
+        const scaleX = img.scaleX;
+        const scaleY = img.scaleY;
+        img.setScale(0);
+
+        this.tiles[col + row * BOARD_COLS] = { img, scaleX, scaleY };
       }
     }
   }
@@ -39,7 +50,7 @@ export class BoardTileManager {
   show(forPlayer2 = false, duration = 0.8): void {
     const shown = new Array(BOARD_COLS * BOARD_ROWS).fill(false);
     const startCol = forPlayer2 ? BOARD_COLS - 1 : 0;
-    const startIdx = startCol + 0 * BOARD_COLS;
+    const startIdx = startCol;
 
     let waveFront: number[] = [startIdx];
     let nextWave: number[] = [];
@@ -55,26 +66,26 @@ export class BoardTileManager {
 
         const col = idx % BOARD_COLS;
         const row = Math.floor(idx / BOARD_COLS);
-        const tile = this.tiles[idx];
-        if (!tile) continue;
+        const entry = this.tiles[idx];
+        if (!entry) continue;
+        const { img, scaleX, scaleY } = entry;
 
         this.scene.tweens.add({
-          targets: tile,
+          targets: img,
           alpha: FLOOR_TILE_OPACITY,
           delay,
           duration: fadeDur,
           ease: 'Expo.easeIn',
         });
         this.scene.tweens.add({
-          targets: tile,
-          scaleX: tile.scaleX === 0 ? this.tileW / (tile.width || this.tileW) : tile.scaleX,
-          scaleY: tile.scaleY === 0 ? this.tileH / (tile.height || this.tileH) : tile.scaleY,
+          targets: img,
+          scaleX,
+          scaleY,
           delay,
           duration: scaleDur,
           ease: 'Back.easeOut',
         });
 
-        // queue neighbors
         if (row + 1 < BOARD_ROWS) nextWave.push(col + (row + 1) * BOARD_COLS);
         if (forPlayer2) {
           if (col - 1 >= 0) nextWave.push((col - 1) + row * BOARD_COLS);
@@ -90,10 +101,10 @@ export class BoardTileManager {
   }
 
   hide(duration = 0.4): void {
-    for (const tile of this.tiles) {
-      if (!tile) continue;
+    for (const entry of this.tiles) {
+      if (!entry) continue;
       this.scene.tweens.add({
-        targets: tile,
+        targets: entry.img,
         alpha: 0,
         duration: duration * 1000,
         ease: 'Linear',
@@ -107,10 +118,12 @@ export class BoardTileManager {
     this.tileH = tileH;
     for (let row = 0; row < BOARD_ROWS; row++) {
       for (let col = 0; col < BOARD_COLS; col++) {
-        const tile = this.tiles[col + row * BOARD_COLS];
-        if (!tile) continue;
+        const entry = this.tiles[col + row * BOARD_COLS];
+        if (!entry) continue;
         const { x, y } = cellToPixel(col, row);
-        tile.setPosition(x, y).setDisplaySize(tileW, tileH);
+        entry.img.setPosition(x, y).setDisplaySize(tileW, tileH);
+        entry.scaleX = entry.img.scaleX;
+        entry.scaleY = entry.img.scaleY;
       }
     }
   }
