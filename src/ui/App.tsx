@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RunHUD } from './RunHUD';
 import { DraftScreen } from './DraftScreen';
 import { RelicScreen } from './RelicScreen';
 import { MetaScreen } from '../roguelike/ProgressionSystem';
@@ -36,9 +35,6 @@ export function App(): React.ReactElement {
 
   return (
     <>
-      {/* HUD always visible during combat */}
-      {screen === 'combat' && <RunHUD run={run} />}
-
       {/* Full-screen overlays for meta-loop screens */}
       {screen === 'draft' && <DraftScreen run={run} onPick={() => { /* TODO */ }} />}
       {screen === 'relic' && <RelicScreen run={run} onPick={() => { /* TODO */ }} />}
