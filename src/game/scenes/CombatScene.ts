@@ -82,22 +82,22 @@ export class CombatScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
-    // Isometric grid geometry — (COLS+ROWS)/2 tile-widths across, (COLS+ROWS)/4 tile-widths tall
+    // Pseudo-isometric grid: flat orthographic columns, foreshortened rows (tileH = tileW/2)
     const TOP_UI_H = 55;
     const BOTTOM_BAR_H = 90;
     const availH = height - TOP_UI_H - BOTTOM_BAR_H;
-    const tileWByWidth  = Math.floor(width * 0.78 / ((COLS + ROWS) / 2));
-    const tileWByHeight = Math.floor(availH / ((COLS + ROWS) / 4));
+    const tileWByWidth  = Math.floor(width * 0.78 / COLS);
+    const tileWByHeight = Math.floor(availH * 2 / ROWS);
     this.tileW = Math.min(tileWByWidth, tileWByHeight);
     this.tileH = Math.floor(this.tileW / 2);
 
     // Origin = screen position of the center of cell (0,0)
-    this.gridOriginX = width / 2 - ((COLS - ROWS) / 2) * (this.tileW / 2);
-    this.gridOriginY = (TOP_UI_H + availH / 2) - ((COLS + ROWS - 2) / 2) * (this.tileH / 2);
+    this.gridOriginX = width / 2 - ((COLS - 1) / 2) * this.tileW;
+    this.gridOriginY = (TOP_UI_H + availH / 2) - ((ROWS - 1) / 2) * this.tileH;
 
     // Left/right grid bounding edges for HUD panel placement
-    this.gridLeftEdge  = this.gridOriginX - ROWS * (this.tileW / 2);
-    this.gridRightEdge = this.gridOriginX + COLS * (this.tileW / 2);
+    this.gridLeftEdge  = this.gridOriginX - this.tileW / 2;
+    this.gridRightEdge = this.gridOriginX + (COLS - 0.5) * this.tileW;
 
     this.drawBackground();
 
@@ -607,18 +607,16 @@ export class CombatScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private pixelToCell(x: number, y: number): Position | null {
-    const dx = (x - this.gridOriginX) / (this.tileW / 2);
-    const dy = (y - this.gridOriginY) / (this.tileH / 2);
-    const col = Math.round((dx + dy) / 2);
-    const row = Math.round((dy - dx) / 2);
+    const col = Math.round((x - this.gridOriginX) / this.tileW);
+    const row = Math.round((y - this.gridOriginY) / this.tileH);
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
     return { col, row };
   }
 
   protected cellToPixel(col: number, row: number): { x: number; y: number } {
     return {
-      x: this.gridOriginX + (col - row) * (this.tileW / 2),
-      y: this.gridOriginY + (col + row) * (this.tileH / 2),
+      x: this.gridOriginX + col * this.tileW,
+      y: this.gridOriginY + row * this.tileH,
     };
   }
 }
