@@ -12,6 +12,8 @@ import { GameState, TurnPhase, Unit, Position } from '../../types';
 import { createInitialGameState } from '../../engine/GameState';
 import { reachableTiles, attackableTargets } from '../../engine/BoardState';
 import { createUnitSprite, playUnitAnim, UnitAnimKey } from '../UnitAnimator';
+import { BoardTileManager } from '../BoardTileManager';
+import { TileHighlightLayer } from '../TileHighlightLayer';
 
 const COLS = 9;
 const ROWS = 5;
@@ -30,7 +32,8 @@ export class CombatScene extends Phaser.Scene {
   private currentPhase: TurnPhase = 'PLAYER_TURN';
   private playerActedThisTurn: boolean = false;
   private selectedUnit: Unit | null = null;
-  private tileHighlights: Phaser.GameObjects.Image[] = [];
+  private boardTileManager!: BoardTileManager;
+  private highlightLayer!: TileHighlightLayer;
   private highlightedPositions: Position[] = [];
   private attackablePositions: Position[] = [];
   private hpLabels: Map<string, Phaser.GameObjects.Text> = new Map();
@@ -97,7 +100,16 @@ export class CombatScene extends Phaser.Scene {
     this.gridRightEdge = this.gridOriginX + COLS * (this.tileW / 2);
 
     this.drawBackground();
-    this.drawGrid();
+
+    const cellToPixelFn = (col: number, row: number) => this.cellToPixel(col, row);
+    this.boardTileManager = new BoardTileManager(this, cellToPixelFn, this.tileW, this.tileH);
+    this.highlightLayer = new TileHighlightLayer(this, cellToPixelFn, this.tileW, this.tileH);
+    this.boardTileManager.show(false, 0.8);
+
+    this.scale.on('resize', () => {
+      this.boardTileManager.reposition(cellToPixelFn, this.tileW, this.tileH);
+      this.highlightLayer.reposition(cellToPixelFn, this.tileW, this.tileH);
+    });
 
     this.gameState = createInitialGameState();
     this.renderUnits();
@@ -127,18 +139,6 @@ export class CombatScene extends Phaser.Scene {
       .setDisplaySize(width, height).setDepth(0);
     this.add.image(width / 2, height / 2, 'combat_mid')
       .setDisplaySize(width, height).setDepth(1).setAlpha(0.85);
-  }
-
-  private drawGrid(): void {
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col < COLS; col++) {
-        const { x, y } = this.cellToPixel(col, row);
-        const depth = col + row;
-        this.add.image(x, y, 'tiles_board', 'tile_board.png')
-          .setDisplaySize(this.tileW, this.tileH)
-          .setDepth(depth);
-      }
-    }
   }
 
   private drawPlayerHUDs(): void {
@@ -445,37 +445,37 @@ export class CombatScene extends Phaser.Scene {
 
   private showReachableTiles(unit: Unit): void {
     this.clearHighlights();
+    const moveTiles: Position[] = [];
+    const attackTiles: Position[] = [];
+
     if (!unit.hasMoved) {
-      const tiles = reachableTiles(unit, this.gameState.units);
-      this.highlightedPositions = tiles;
-      for (const pos of tiles) {
-        const { x, y } = this.cellToPixel(pos.col, pos.row);
-        const img = this.add.image(x, y, 'tiles_board', 'tile_hover.png')
-          .setDisplaySize(this.tileW, this.tileH)
-          .setAlpha(0.75).setDepth(pos.col + pos.row + 0.1).setTint(0x4488ff);
-        this.tileHighlights.push(img);
-      }
+      this.highlightedPositions = reachableTiles(unit, this.gameState.units);
+      moveTiles.push(...this.highlightedPositions);
     }
     if (!unit.hasAttacked) {
-      this.showAttackableTargets(unit);
+      const targets = attackableTargets(unit, this.gameState.units);
+      this.attackablePositions = targets.map(t => t.position);
+      attackTiles.push(...this.attackablePositions);
     }
-  }
 
-  private showAttackableTargets(unit: Unit): void {
-    const targets = attackableTargets(unit, this.gameState.units);
-    this.attackablePositions = targets.map(t => t.position);
-    for (const target of targets) {
-      const { x, y } = this.cellToPixel(target.position.col, target.position.row);
-      const img = this.add.image(x, y, 'tiles_board', 'tile_hover.png')
-        .setDisplaySize(this.tileW, this.tileH)
-        .setAlpha(0.75).setDepth(target.position.col + target.position.row + 0.1).setTint(0xff4400);
-      this.tileHighlights.push(img);
+    if (moveTiles.length > 0) {
+      this.highlightLayer.show(moveTiles, 'move', attackTiles.length > 0 ? attackTiles : undefined);
+    }
+
+    if (attackTiles.length > 0) {
+      const attackLayer = new TileHighlightLayer(
+        this,
+        (col, row) => this.cellToPixel(col, row),
+        this.tileW,
+        this.tileH,
+      );
+      attackLayer.show(attackTiles, 'attack', moveTiles.length > 0 ? moveTiles : undefined);
+      this.highlightLayer.absorb(attackLayer);
     }
   }
 
   private clearHighlights(): void {
-    for (const img of this.tileHighlights) img.destroy();
-    this.tileHighlights = [];
+    this.highlightLayer.clear();
     this.highlightedPositions = [];
     this.attackablePositions = [];
   }
